@@ -11,6 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+"""
+Lorem Ipsum
+"""
+
 import datetime
 import ntpath
 import tempfile
@@ -30,6 +35,7 @@ from feast.sdk.utils.gs_utils import gcs_to_df, is_gs_path, df_to_gcs
 from feast.sdk.utils.print_utils import spec_to_yaml
 from feast.sdk.utils.types import dtype_to_value_type
 from feast.specs.ImportSpec_pb2 import ImportSpec, Schema
+
 
 
 class Importer:

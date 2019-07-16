@@ -211,6 +211,7 @@ class TableDownloader:
     ):
         """
         Download a bigquery table as file
+        
         Args:
             full_table_id (str): fully qualified BigQuery table id
             dest (str): destination filename
@@ -258,6 +259,7 @@ class TableDownloader:
     def download_table_as_df(self, full_table_id, staging_location=None):
         """
         Download a BigQuery table as Pandas Dataframe
+
         Args:
             full_table_id (src) : fully qualified BigQuery table id
             staging_location: url to staging_location (currently

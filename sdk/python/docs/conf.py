@@ -44,7 +44,9 @@ extensions = [
     "sphinx.ext.todo",
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
-    "sphinxcontrib.fulltoc",
+    "sphinx_markdown_tables",
+    "sphinx.ext.autosummary",
+    "m2r",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -106,8 +108,14 @@ html_static_path = ["_static"]
 # defined by theme itself.  Builtin themes are using these templates by
 # default: ``['localtoc.html', 'relations.html', 'sourcelink.html',
 # 'searchbox.html']``.
-#
-# html_sidebars = {}
+html_sidebars = {
+    "**": [
+        "about.html",
+        "navigation.html",
+        "relations.html",
+        "searchbox.html",
+    ]
+}
 
 
 # -- Options for HTMLHelp output ---------------------------------------------
@@ -186,12 +194,13 @@ epub_exclude_files = ["search.html"]
 
 # -- Extension configuration -------------------------------------------------
 
-# -- Options for intersphinx extension ---------------------------------------
+# Automatically generate API reference stubs from autosummary.
+# http://www.sphinx-doc.org/en/master/ext/autosummary.html#generating-stub-pages-automatically
+autodoc_default_flags = ["members"]
+autosummary_generate = True
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {"https://docs.python.org/": None}
-
-# -- Options for todo extension ----------------------------------------------
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True

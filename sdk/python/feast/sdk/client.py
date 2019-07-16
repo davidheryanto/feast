@@ -139,6 +139,7 @@ class Client:
     ):
         """
         Run an import job
+        
         Args:
             importer (feast.sdk.importer.Importer): importer instance
             name_override (str, optional): Job name override
@@ -244,7 +245,7 @@ class Client:
         Args:
             feature_set (feast.sdk.resources.feature_set.FeatureSet): feature set
                 representing the data wanted
-            entity_keys (:obj: `list` of :obj: `str): list of entity keys
+            entity_keys (:obj: `list` of :obj: `str`): list of entity keys
             ts_range (:obj: `list` of str, optional): size 2 list of start
                 and end time, in datetime type. It will
                 filter out any feature value having event timestamp outside
@@ -274,8 +275,9 @@ class Client:
     ):
         """
         Download training dataset as file
+
         Args:
-            dataset_info (feast.sdk.resources.feature_set.DatasetInfo) :
+            dataset_info (feast.sdk.resources.feature_set.DatasetInfo):
                 dataset_info to be downloaded
             dest (str): destination's file path
             staging_location (str, optional): url to staging_location (currently
@@ -292,8 +294,9 @@ class Client:
     def download_dataset_to_df(self, dataset_info, staging_location=None):
         """
         Download training dataset as Pandas Dataframe
+
         Args:
-            dataset_info (feast.sdk.resources.feature_set.DatasetInfo) :
+            dataset_info (feast.sdk.resources.feature_set.DatasetInfo):
                 dataset_info to be downloaded
             staging_location(str, optional): url to staging_location (currently
                 support a folder in GCS)
