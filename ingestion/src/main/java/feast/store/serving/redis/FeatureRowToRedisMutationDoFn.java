@@ -44,11 +44,9 @@ public class FeatureRowToRedisMutationDoFn extends DoFn<FeatureRowExtended, Redi
                       featureSpec.getOptionsMap(),
                       RedisFeatureOptions.class))
           .build();
-  private Specs specs;
   private Random random;
 
-  public FeatureRowToRedisMutationDoFn(Specs specs) {
-    this.specs = specs;
+  public FeatureRowToRedisMutationDoFn(Map<String, FeatureSpec> ) {
     this.random = new Random();
   }
 

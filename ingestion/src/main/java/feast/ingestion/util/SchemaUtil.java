@@ -43,10 +43,18 @@ public class SchemaUtil {
     VALUE_TYPE_TO_STANDARD_SQL_TYPE.put(ValueType.Enum.STRING, StandardSQLTypeName.STRING);
   }
 
-  private static TableDefinition createTableDefinition(Iterable<FeatureSpec> featureSpecs) {
+  private static TableDefinition createTableDefinition(
+      EntitySpec entitySpec, Iterable<FeatureSpec> featureSpecs) {
     List<Field> fields = new ArrayList<>();
     log.debug("Table will have the following fields:");
     for (FeatureSpec featureSpec : featureSpecs) {
+      if (!entitySpec.getName().equals(featureSpec.getEntity())) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Entity specified in feature id '%s' is '%s', different from entity specified in entity spec '%s'. Please make sure they are the same and retry.",
+                featureSpec.getId(), featureSpec.getEntity(), entitySpec.getName()));
+      }
+
       Field field =
           Field.newBuilder(
                   featureSpec.getName(),
@@ -91,7 +99,7 @@ public class SchemaUtil {
 
     // Ensure BigQuery table with correct schema exists.
     TableId tableId = TableId.of(projectId, datasetId.getDataset(), entitySpec.getName());
-    TableDefinition tableDefinition = createTableDefinition(featureSpecs);
+    TableDefinition tableDefinition = createTableDefinition(entitySpec, featureSpecs);
     TableInfo tableInfo = TableInfo.of(tableId, tableDefinition);
     if (bigquery.getTable(tableId) == null) {
       log.info(

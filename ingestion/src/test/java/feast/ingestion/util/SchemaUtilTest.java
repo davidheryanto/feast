@@ -175,4 +175,19 @@ public class SchemaUtilTest {
 
     SchemaUtil.setupBigQuery(storageSpec, entitySpec, featureSpecs, mockBigquery);
   }
+
+  /**
+   * Expect exceptions when the entity value specified in entitySpec is different from that in any
+   * of featureSpecs
+   */
+  @Test(expected = IllegalArgumentException.class)
+  public void setupBigQueryWithInconsistentEntityInSpec() {
+    // Mock BigQuery service
+    BigQuery mockBigquery = Mockito.mock(BigQuery.class);
+    BigQueryOptions mockBigqueryOptions = Mockito.mock(BigQueryOptions.class);
+    when(mockBigqueryOptions.getProjectId()).thenReturn("test_project");
+    when(mockBigquery.getOptions()).thenReturn(mockBigqueryOptions);
+    entitySpec = entitySpec.toBuilder().setName("inconsitent_entity_name").build();
+    SchemaUtil.setupBigQuery(storageSpec, entitySpec, featureSpecs, mockBigquery);
+  }
 }
