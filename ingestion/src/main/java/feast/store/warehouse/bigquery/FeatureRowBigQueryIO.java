@@ -58,6 +58,7 @@ public class FeatureRowBigQueryIO {
 
     @Override
     public PDone expand(PCollection<FeatureRowExtended> input) {
+      // TODO: Refer Here from WriteFeaturesTransform
       FeatureRowToBigQueryTableRowDoFn toTableRowDoFn = new FeatureRowToBigQueryTableRowDoFn(specs);
       BigQueryIO.Write<FeatureRowExtended> write =
           BigQueryIO.<FeatureRowExtended>write()

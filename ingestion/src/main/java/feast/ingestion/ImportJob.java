@@ -23,12 +23,11 @@ import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.inject.Guice;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.util.JsonFormat;
 import feast.ingestion.boot.ImportJobModule;
 import feast.ingestion.boot.PipelineModule;
 import feast.ingestion.metrics.FeastMetrics;
 import feast.ingestion.options.ImportJobPipelineOptions;
+import feast.ingestion.transform.ErrorsStoreTransform;
 import feast.ingestion.transform.ReadFeaturesTransform;
 import feast.ingestion.transform.ToFeatureRowExtended;
 import feast.ingestion.transform.WriteFeaturesTransform;
@@ -79,7 +78,7 @@ public class ImportJob {
   private final WriteFeaturesTransform writeFeaturesTransform;
   // private final ServingStoreTransform servingStoreTransform;
   // private final WarehouseStoreTransform warehouseStoreTransform;
-  // private final ErrorsStoreTransform errorsStoreTransform;
+  private final ErrorsStoreTransform errorsStoreTransform;
   // private final boolean dryRun;
   private final ImportJobPipelineOptions options;
   // private final Specs specs;
@@ -90,12 +89,14 @@ public class ImportJob {
       ImportJobPipelineOptions options,
       ImportJobSpecs importJobSpecs,
       ReadFeaturesTransform readFeaturesTransform,
-      WriteFeaturesTransform writeFeaturesTransform) {
+      WriteFeaturesTransform writeFeaturesTransform,
+      ErrorsStoreTransform errorsStoreTransform) {
     this.pipeline = pipeline;
     this.options = options;
     this.importJobSpecs = importJobSpecs;
     this.readFeaturesTransform = readFeaturesTransform;
     this.writeFeaturesTransform = writeFeaturesTransform;
+    this.errorsStoreTransform = errorsStoreTransform;
   }
 
   // @Inject
@@ -212,12 +213,6 @@ public class ImportJob {
     ImportJobPipelineOptions pipelineOptions =
         pipeline.getOptions().as(ImportJobPipelineOptions.class);
 
-    try {
-      log.info(JsonFormat.printer().print(importJobSpecs));
-    } catch (InvalidProtocolBufferException e) {
-      // pass
-    }
-
     PCollection<FeatureRow> features = pipeline.apply("Read", readFeaturesTransform);
     if (pipelineOptions.getSampleLimit() > 0) {
       features = features.apply(Sample.any(pipelineOptions.getSampleLimit()));
@@ -235,7 +230,10 @@ public class ImportJob {
     logNRows(pFeatureRows, "Output sample", 1, Duration.standardSeconds(30));
 
     PCollection<FeatureRowExtended> featureRows = pFeatureRows.getMain();
+    featureRows.apply(writeFeaturesTransform);
+
     PCollection<FeatureRowExtended> errorRows = pFeatureRows.getErrors();
+    errorRows.apply(errorsStoreTransform);
 
     // if (!dryRun) {
     //   applySinkTransform(
@@ -255,7 +253,7 @@ public class ImportJob {
     return featureRows;
   }
 
-  public void logNRows(PFeatureRows pFeatureRows, String name, long limit, Duration period) {
+  private void logNRows(PFeatureRows pFeatureRows, String name, long limit, Duration period) {
     PCollection<FeatureRowExtended> main = pFeatureRows.getMain();
     PCollection<FeatureRowExtended> errors = pFeatureRows.getErrors();
 

@@ -13,6 +13,8 @@ import java.util.Map;
 import static feast.specs.FeatureSpecProto.FeatureSpec;
 import static feast.types.ValueProto.ValueType;
 
+// TODO: Create partitioned table by default
+
 /**
  * This class is a utility to manage schemas for storage backends in Feast.
  *
