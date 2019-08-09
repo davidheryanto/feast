@@ -18,11 +18,15 @@ import logging
 import os
 from datetime import datetime
 
-import feast.sdk.utils.types
 import grpc
 import numpy as np
 import pandas as pd
-import tzlocal
+from google.protobuf.timestamp_pb2 import Timestamp
+from kafka import KafkaProducer
+from pandas.core.dtypes.common import is_datetime64_any_dtype
+from tqdm import tqdm
+
+import feast.sdk.utils.types
 from feast.core.CoreService_pb2 import CoreServiceTypes
 from feast.core.CoreService_pb2_grpc import CoreServiceStub
 from feast.core.DatasetService_pb2 import DatasetServiceTypes
@@ -45,10 +49,6 @@ from feast.specs.FeatureSpec_pb2 import FeatureSpec
 from feast.types import Feature_pb2
 from feast.types.FeatureRow_pb2 import FeatureRow
 from feast.types.Value_pb2 import Value
-from google.protobuf.timestamp_pb2 import Timestamp
-from kafka import KafkaProducer
-from pandas.core.dtypes.common import is_datetime64_any_dtype
-from tqdm import tqdm
 
 
 def _feast_core_apply_entity_stub(entity):
@@ -308,8 +308,8 @@ class Client:
         # If user provides value with type "datetime64[ns]" i.e. no timezone info
         # Feast will assume it's using the user local timezone
         if str(dataframe[timestamp_column].dtype) == "datetime64[ns]":
-            local_timezone_name = str(tzlocal.get_localzone())
-            dataframe[timestamp_column].dt.tz_localize(tz=local_timezone_name)
+            local_timezone = datetime.now().astimezone().tzinfo
+            dataframe[timestamp_column].dt.tz_localize(tz=local_timezone)
         dataframe[timestamp_column] = pd.to_datetime(
             dataframe[timestamp_column], utc=True
         )
@@ -388,8 +388,8 @@ class Client:
             if is_datetime64_any_dtype(dataframe[column]):
                 if str(dataframe[column].dtype) == "datetime64[ns]":
                     # Column has no timezone info so we assume it's local timezone
-                    local_timezone_name = str(tzlocal.get_localzone())
-                    dataframe[column].dt.tz_localize(tz=local_timezone_name)
+                    local_timezone = datetime.now().astimezone().tzinfo
+                    dataframe[timestamp_column].dt.tz_localize(tz=local_timezone)
                 dataframe[column] = pd.to_datetime(dataframe[column], utc=True).astype(
                     "datetime64[ns]"
                 )
