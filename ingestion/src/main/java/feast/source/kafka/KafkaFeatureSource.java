@@ -69,6 +69,7 @@ public class KafkaFeatureSource extends FeatureSource {
             .withTopics(Arrays.asList(sourceSpec.getOptionsOrThrow("topics").split(",")))
             .withKeyDeserializer(ByteArrayDeserializer.class)
             .withValueDeserializer(FeatureRowDeserializer.class);
+
     if (pipelineOptions.getSampleLimit() > 0) {
       read = read.withMaxNumRecords(pipelineOptions.getSampleLimit());
     }

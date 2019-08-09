@@ -1,9 +1,11 @@
 package feast.ingestion.util;
 
 import com.google.cloud.bigquery.*;
+import com.google.common.collect.ImmutableMap;
 import feast.specs.EntitySpecProto.EntitySpec;
 import feast.specs.StorageSpecProto.StorageSpec;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -45,7 +47,7 @@ public class SchemaUtil {
     VALUE_TYPE_TO_STANDARD_SQL_TYPE.put(ValueType.Enum.STRING, StandardSQLTypeName.STRING);
   }
 
-  private static TableDefinition createTableDefinition(
+  private static TableDefinition createBigQueryTableDefinition(
       EntitySpec entitySpec, Iterable<FeatureSpec> featureSpecs) {
     List<Field> fields = new ArrayList<>();
     log.debug("Table will have the following fields:");
@@ -66,6 +68,38 @@ public class SchemaUtil {
       log.debug("- {}", field.toString());
       fields.add(field);
     }
+
+    // In Feast 0.2,
+    // - "id" is a reserved field in BigQuery that indicates the entity id
+    // - "event_timestamp" is a reserved field in BigQuery that indicates the event time for a
+    // FeatureRow
+    // - "created_timestamp" is a reserved field in BigQuery that indicates the time a FeatureRow is
+    // crated in Feast
+    // - "job_id" is a reserved field in BigQuery that indicates the Feast import job id that writes
+    // the FeatureRows
+    Map<String, Pair<StandardSQLTypeName, String>>
+        reservedFieldNameToPairOfStandardSQLTypeAndDescription =
+            ImmutableMap.of(
+                "id", Pair.of(StandardSQLTypeName.STRING, "Entity ID for the FeatureRow"),
+                "event_timestamp",
+                    Pair.of(StandardSQLTypeName.TIMESTAMP, "Event time for the FeatureRow"),
+                "created_timestamp",
+                    Pair.of(
+                        StandardSQLTypeName.TIMESTAMP,
+                        "The time when the FeatureRow is created in Feast"),
+                "job_id",
+                    Pair.of(
+                        StandardSQLTypeName.STRING, "Feast import job ID for the FeatureRow"));
+    for (Map.Entry<String, Pair<StandardSQLTypeName, String>> entry :
+        reservedFieldNameToPairOfStandardSQLTypeAndDescription.entrySet()) {
+      Field field =
+          Field.newBuilder(entry.getKey(), entry.getValue().getLeft())
+              .setDescription(entry.getValue().getRight())
+              .build();
+      log.debug("- {}", field.toString());
+      fields.add(field);
+    }
+
     return StandardTableDefinition.of(Schema.of(fields));
   }
 
@@ -101,7 +135,7 @@ public class SchemaUtil {
 
     // Ensure BigQuery table with correct schema exists.
     TableId tableId = TableId.of(projectId, datasetId.getDataset(), entitySpec.getName());
-    TableDefinition tableDefinition = createTableDefinition(entitySpec, featureSpecs);
+    TableDefinition tableDefinition = createBigQueryTableDefinition(entitySpec, featureSpecs);
     TableInfo tableInfo = TableInfo.of(tableId, tableDefinition);
     if (bigquery.getTable(tableId) == null) {
       log.info(

@@ -51,7 +51,7 @@ public class FeatureRowToBigQueryTableRowDoFn extends DoFn<FeatureRowExtended, T
     context.output(toTableRow(context.element()));
   }
 
-  TableRow toTableRow(FeatureRowExtended featureRowExtended) {
+  private TableRow toTableRow(FeatureRowExtended featureRowExtended) {
     FeatureRow featureRow = featureRowExtended.getRow();
     TableRow tableRow = new TableRow();
 

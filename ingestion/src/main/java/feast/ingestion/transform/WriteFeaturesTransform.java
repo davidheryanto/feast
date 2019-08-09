@@ -7,6 +7,9 @@ import feast.store.serving.redis.FeatureRowToRedisMutationDoFn;
 import feast.store.serving.redis.RedisCustomIO;
 import feast.store.warehouse.bigquery.FeatureRowToBigQueryTableRowDoFn;
 import feast.types.FeatureRowExtendedProto.FeatureRowExtended;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO;
+import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO.Write.CreateDisposition;
 import org.apache.beam.sdk.transforms.PTransform;
 import org.apache.beam.sdk.transforms.ParDo;
 import org.apache.beam.sdk.values.PCollection;
@@ -17,7 +20,9 @@ import java.util.Map;
 
 import static feast.specs.EntitySpecProto.EntitySpec;
 import static feast.specs.FeatureSpecProto.FeatureSpec;
+import static org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO.Write.WriteDisposition.WRITE_APPEND;
 
+@Slf4j
 public class WriteFeaturesTransform extends PTransform<PCollection<FeatureRowExtended>, PDone> {
   private ImportJobSpecs importJobSpecs;
   private String sinkStorageSpecType;
@@ -47,20 +52,31 @@ public class WriteFeaturesTransform extends PTransform<PCollection<FeatureRowExt
                 "Create RedisMutation from FeatureRow",
                 ParDo.of(new FeatureRowToRedisMutationDoFn(featureSpecByFeatureId)))
             .apply(RedisCustomIO.write(redisHost, redisPort));
+        break;
+
       case "BIGQUERY":
         String projectId = sinkStorageSpec.getOptionsOrThrow("projectId");
         String datasetId = sinkStorageSpec.getOptionsOrThrow("datasetId");
         String tableId = entitySpec.getName();
         String tableSpec = String.format("%s:%s.%s", projectId, datasetId, tableId);
 
-        input.apply(
-            "Create BigQuery TableRow from FeatureRow",
-            ParDo.of(
-                new FeatureRowToBigQueryTableRowDoFn(
-                    featureSpecByFeatureId, importJobSpecs.getJobId())));
-        // TODO: Stream TableRow to BigQuery
+        input
+            .apply(
+                "Create BigQuery TableRow from FeatureRow",
+                ParDo.of(
+                    new FeatureRowToBigQueryTableRowDoFn(
+                        featureSpecByFeatureId, importJobSpecs.getJobId())))
+            .apply(
+                BigQueryIO.writeTableRows()
+                    .to(tableSpec)
+                    .withCreateDisposition(CreateDisposition.CREATE_NEVER)
+                    .withWriteDisposition(WRITE_APPEND));
         break;
+
       default:
+        log.warn(
+            "sinkStorageSpec of type '{}' is not supported, no FeatureRows will be written.",
+            sinkStorageSpecType);
         break;
     }
     return PDone.in(input.getPipeline());
