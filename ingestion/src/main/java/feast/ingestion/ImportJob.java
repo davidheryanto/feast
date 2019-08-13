@@ -225,9 +225,11 @@ public class ImportJob {
     // pFeatureRows = pFeatureRows.applyDoFn("Convert feature types", new ConvertTypesDoFn(specs));
     // pFeatureRows = pFeatureRows.apply("Validate features", new ValidateTransform(specs));
 
-    log.info(
-        "A sample of size 1 of incoming rows from MAIN and ERRORS will logged every 30 seconds for visibility");
-    logNRows(pFeatureRows, "Output sample", 1, Duration.standardSeconds(30));
+    // log.info(
+    //     "A sample of size 1 of incoming rows from MAIN and ERRORS will logged every 30 seconds for visibility");
+    // logNRows(pFeatureRows, "Output sample", 1, Duration.standardSeconds(30));
+
+    // logNRows(pFeatureRows, "Output sample", 100, Duration.standardSeconds(10));
 
     PCollection<FeatureRowExtended> featureRows = pFeatureRows.getMain();
     featureRows.apply(writeFeaturesTransform);

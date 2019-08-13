@@ -293,29 +293,28 @@ class Client:
                 'No "timestamp_column" is specified, Feast will assign current '
                 "time as the event timestamp for the features"
             )
-            dataframe["_event_timestamp"] = np.datetime64("now")
+            dataframe["_event_timestamp"] = datetime.now().astimezone()
             timestamp_column = "_event_timestamp"
         elif timestamp_column not in dataframe.columns:
             raise ValueError(
                 f'timestamp_column "{timestamp_column}" does not exist in the Dataframe'
             )
+
+        # If user provides value with type "datetime64[ns]" i.e. no timezone info
+        # Feast will assume it's using the user local timezone
+        if dataframe[timestamp_column].dtype == np.dtype("datetime64[ns]"):
+            local_timezone = datetime.now().astimezone().tzinfo
+            dataframe[timestamp_column] = dataframe[timestamp_column].dt.tz_localize(
+                tz=local_timezone
+            )
+
         # Ensure timestamp value is in format that Feast accepts.
         # For example the timestamp_column may be in these types:
         # - datetime64[ns, tz]
         # - object (if the value is in string)
         # pandas.to_datetime ensures that it is normalized to datetime64[ns, UTC]
-        #
-        # If user provides value with type "datetime64[ns]" i.e. no timezone info
-        # Feast will assume it's using the user local timezone
-        if str(dataframe[timestamp_column].dtype) == "datetime64[ns]":
-            local_timezone = datetime.now().astimezone().tzinfo
-            dataframe[timestamp_column].dt.tz_localize(tz=local_timezone)
         dataframe[timestamp_column] = pd.to_datetime(
             dataframe[timestamp_column], utc=True
-        )
-
-        dataframe[timestamp_column] = dataframe[timestamp_column].astype(
-            "datetime64[ns]"
         )
         return timestamp_column
 
@@ -386,13 +385,12 @@ class Client:
             if column == entity_key_column or column == timestamp_column:
                 continue
             if is_datetime64_any_dtype(dataframe[column]):
-                if str(dataframe[column].dtype) == "datetime64[ns]":
+                if dataframe[column].dtype == np.dtype("datetime64[ns]"):
                     # Column has no timezone info so we assume it's local timezone
                     local_timezone = datetime.now().astimezone().tzinfo
-                    dataframe[timestamp_column].dt.tz_localize(tz=local_timezone)
-                dataframe[column] = pd.to_datetime(dataframe[column], utc=True).astype(
-                    "datetime64[ns]"
-                )
+                    dataframe[timestamp_column] = dataframe[
+                        timestamp_column
+                    ].dt.tz_localize(tz=local_timezone)
 
         if entity_tags is None:
             entity_tags = []
