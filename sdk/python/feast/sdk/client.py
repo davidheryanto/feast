@@ -18,15 +18,10 @@ import logging
 import os
 from datetime import datetime
 
+import feast.sdk.utils.types
 import grpc
 import numpy as np
 import pandas as pd
-from google.protobuf.timestamp_pb2 import Timestamp
-from kafka import KafkaProducer
-from pandas.core.dtypes.common import is_datetime64_any_dtype
-from tqdm import tqdm
-
-import feast.sdk.utils.types
 from feast.core.CoreService_pb2 import CoreServiceTypes
 from feast.core.CoreService_pb2_grpc import CoreServiceStub
 from feast.core.DatasetService_pb2 import DatasetServiceTypes
@@ -49,6 +44,10 @@ from feast.specs.FeatureSpec_pb2 import FeatureSpec
 from feast.types import Feature_pb2
 from feast.types.FeatureRow_pb2 import FeatureRow
 from feast.types.Value_pb2 import Value
+from google.protobuf.timestamp_pb2 import Timestamp
+from kafka import KafkaProducer
+from pandas.core.dtypes.common import is_datetime64_any_dtype
+from tqdm import tqdm
 
 
 def _feast_core_apply_entity_stub(entity):
@@ -384,13 +383,16 @@ class Client:
         for column in dataframe.columns:
             if column == entity_key_column or column == timestamp_column:
                 continue
+            # TODO: Refactor duplication with parts from "_ensure_valid_timestamp_in_dataframe" function
             if is_datetime64_any_dtype(dataframe[column]):
                 if dataframe[column].dtype == np.dtype("datetime64[ns]"):
                     # Column has no timezone info so we assume it's local timezone
                     local_timezone = datetime.now().astimezone().tzinfo
-                    dataframe[timestamp_column] = dataframe[
-                        timestamp_column
-                    ].dt.tz_localize(tz=local_timezone)
+                    dataframe[column] = dataframe[column].dt.tz_localize(
+                        tz=local_timezone
+                    )
+                # Normalize to UTC timezone
+                dataframe[column] = pd.to_datetime(dataframe[column], utc=True)
 
         if entity_tags is None:
             entity_tags = []
