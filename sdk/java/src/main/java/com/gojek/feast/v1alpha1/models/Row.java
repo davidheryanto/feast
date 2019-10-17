@@ -3,7 +3,6 @@ package com.gojek.feast.v1alpha1.models;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.Timestamps;
-import feast.serving.ServingAPIProto.GetOnlineFeaturesRequest.EntityRow;
 import feast.types.ValueProto.Value;
 import java.time.Instant;
 import java.util.HashMap;
@@ -36,8 +35,8 @@ public class Row {
   }
 
   public Row set(String fieldName, Object value) {
-    String className = value.getClass().getCanonicalName();
-    switch (className) {
+    String valueType = value.getClass().getCanonicalName();
+    switch (valueType) {
       case "java.lang.Integer":
         fields.put(fieldName, Value.newBuilder().setInt32Val((int) value).build());
         break;
@@ -57,6 +56,11 @@ public class Row {
         fields.put(
             fieldName, Value.newBuilder().setBytesVal(ByteString.copyFrom((byte[]) value)).build());
         break;
+      default:
+        throw new IllegalArgumentException(
+            String.format(
+                "Type '%s' is unsupported in Feast. Please use one of these value types: Integer, Long, Float, Double, String, byte[].",
+                valueType));
     }
     return this;
   }

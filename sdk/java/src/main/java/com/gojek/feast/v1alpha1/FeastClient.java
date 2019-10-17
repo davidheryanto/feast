@@ -3,10 +3,14 @@ package com.gojek.feast.v1alpha1;
 import com.gojek.feast.v1alpha1.models.Row;
 import feast.serving.ServingAPIProto.GetFeastServingInfoRequest;
 import feast.serving.ServingAPIProto.GetFeastServingInfoResponse;
+import feast.serving.ServingAPIProto.GetOnlineFeaturesRequest;
 import feast.serving.ServingAPIProto.GetOnlineFeaturesRequest.EntityRow;
+import feast.serving.ServingAPIProto.GetOnlineFeaturesRequest.FeatureSet;
+import feast.serving.ServingAPIProto.GetOnlineFeaturesResponse;
 import feast.serving.ServingServiceGrpc;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,19 +39,42 @@ public class FeastClient implements AutoCloseable {
 
   public List<Row> getOnlineFeatures(
       List<String> featureIds, List<Row> rows, boolean omitEntitiesInResponse) {
-    Map<Pair<String, String>, String> featureSetMap = new HashMap<>();
+    // featureSetMap is a map of pair of feature set name and version -> a list of feature names
+    Map<Pair<String, Integer>, List<String>> featureSetMap = new HashMap<>();
     for (String featureId : featureIds) {
       String[] parts = featureId.split(":");
       if (parts.length < 3) {
         throw new IllegalArgumentException(
             String.format(
-                "Invalid format for feature id: %s. "
-                    + "Expected format: feature_set_name:version:feature_name.",
+                "Feature id '%s' has invalid format. Expected format: <feature_set_name>:<version>:<feature_name>.",
                 featureId));
       }
-      featureSetMap.put(new Pair<>(parts[0], parts[1]), parts[2]);
+      String featureSetName = parts[0];
+      int featureSetVersion = -1;
+      try {
+        featureSetVersion = Integer.parseInt(parts[1]);
+      } catch (NumberFormatException e) {
+        throw new IllegalArgumentException(
+            String.format("Feature id '%s' contains invalid version", parts[1]));
+      }
+
+      Pair<String, Integer> key = new Pair<>(featureSetName, featureSetVersion);
+      if (!featureSetMap.containsKey(key)) {
+        featureSetMap.put(key, new ArrayList<>());
+      }
+      String featureName = parts[2];
+      featureSetMap.get(key).add(featureName);
     }
-    featureSetMap.
+    List<FeatureSet> featureSets =
+        featureSetMap.entrySet().stream()
+            .map(
+                entry ->
+                    FeatureSet.newBuilder()
+                        .setName(entry.getKey().getKey())
+                        .setVersion(entry.getKey().getValue())
+                        .addAllFeatureNames(entry.getValue())
+                        .build())
+            .collect(Collectors.toList());
 
     List<EntityRow> entityRows =
         rows.stream()
@@ -58,6 +85,23 @@ public class FeastClient implements AutoCloseable {
                         .putAllFields(row.getFields())
                         .build())
             .collect(Collectors.toList());
+
+    GetOnlineFeaturesResponse response =
+        stub.getOnlineFeatures(
+            GetOnlineFeaturesRequest.newBuilder()
+                .addAllFeatureSets(featureSets)
+                .addAllEntityRows(entityRows)
+                .setOmitEntitiesInResponse(omitEntitiesInResponse)
+                .build());
+
+    return response.getFieldValuesList().stream()
+        .map(
+            field -> {
+              Row row = Row.create();
+              field.getFieldsMap().forEach(row::set);
+              return row;
+            })
+        .collect(Collectors.toList());
   }
 
   private FeastClient(ManagedChannel channel) {
