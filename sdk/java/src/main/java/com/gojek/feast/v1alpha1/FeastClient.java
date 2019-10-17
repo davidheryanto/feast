@@ -37,6 +37,10 @@ public class FeastClient implements AutoCloseable {
     return stub.getFeastServingInfo(GetFeastServingInfoRequest.newBuilder().build());
   }
 
+  public List<Row> getOnlineFeatures(List<String> featureIds, List<Row> rows) {
+    return getOnlineFeatures(featureIds, rows, false);
+  }
+
   public List<Row> getOnlineFeatures(
       List<String> featureIds, List<Row> rows, boolean omitEntitiesInResponse) {
     // featureSetMap is a map of pair of feature set name and version -> a list of feature names
