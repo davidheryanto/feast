@@ -1,4 +1,4 @@
-package com.gojek.feast.v1alpha1.models;
+package com.gojek.feast.v1alpha1;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
@@ -104,7 +104,14 @@ public class Row {
   @Override
   public String toString() {
     List<String> parts = new ArrayList<>();
-    fields.forEach((key, value) -> parts.add(key + ":" + value.toString().trim()));
+    fields.forEach(
+        (key, value) ->
+            parts.add(
+                key
+                    + ":"
+                    + (value.getValCase().equals(ValCase.VAL_NOT_SET)
+                        ? "NULL"
+                        : value.toString().trim())));
     return String.join(", ", parts);
   }
 

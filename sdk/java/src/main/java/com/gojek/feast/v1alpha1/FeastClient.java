@@ -1,6 +1,5 @@
 package com.gojek.feast.v1alpha1;
 
-import com.gojek.feast.v1alpha1.models.Row;
 import feast.serving.ServingAPIProto.GetFeastServingInfoRequest;
 import feast.serving.ServingAPIProto.GetFeastServingInfoResponse;
 import feast.serving.ServingAPIProto.GetOnlineFeaturesRequest;
@@ -10,16 +9,13 @@ import feast.serving.ServingAPIProto.GetOnlineFeaturesResponse;
 import feast.serving.ServingServiceGrpc;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import javafx.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@SuppressWarnings("WeakerAccess")
 public class FeastClient implements AutoCloseable {
   Logger logger = LoggerFactory.getLogger(FeastClient.class);
 
@@ -28,6 +24,13 @@ public class FeastClient implements AutoCloseable {
   private final ManagedChannel channel;
   private final ServingServiceGrpc.ServingServiceBlockingStub stub;
 
+  /**
+   * Create a client to access Feast
+   *
+   * @param host hostname or ip address of Feast serving GRPC server
+   * @param port port number of Feast serving GRPC server
+   * @return {@link FeastClient}
+   */
   public static FeastClient create(String host, int port) {
     ManagedChannel channel = ManagedChannelBuilder.forAddress(host, port).usePlaintext().build();
     return new FeastClient(channel);
@@ -37,49 +40,45 @@ public class FeastClient implements AutoCloseable {
     return stub.getFeastServingInfo(GetFeastServingInfoRequest.newBuilder().build());
   }
 
+  /**
+   * Get online features from Feast.
+   *
+   * <p>See {@link #getOnlineFeatures(List, List, boolean)}
+   *
+   * @param featureIds list of feature id to retrieve, feature id follows this format
+   *     [feature_set_name]:[version]:[feature_name]
+   * @param rows list of {@link Row} to select the entities to retrieve the features for
+   * @return list of {@link Row} containing features
+   */
   public List<Row> getOnlineFeatures(List<String> featureIds, List<Row> rows) {
     return getOnlineFeatures(featureIds, rows, false);
   }
 
+  /**
+   * Get online features from Feast.
+   *
+   * <p>Example of retrieving online features for driver feature set, version 1, with features
+   * driver_id and driver_name
+   *
+   * <pre>{@code
+   * FeastClient client = FeastClient.create("localhost", 6566);
+   * List<String> requestedFeatureIds = Arrays.asList("driver:1:driver_id", "driver:1:driver_name");
+   * List<Row> requestedRows =
+   *         Arrays.asList(Row.create().set("driver_id", 123), Row.create().set("driver_id", 456));
+   * List<Row> retrievedFeatures = client.getOnlineFeatures(requestedFeatureIds, requestedRows);
+   * retrievedFeatures.forEach(System.out::println);
+   * }</pre>
+   *
+   * @param featureIds list of feature id to retrieve, feature id follows this format
+   *     [feature_set_name]:[version]:[feature_name]
+   * @param rows list of {@link Row} to select the entities to retrieve the features for
+   * @param omitEntitiesInResponse if true, the returned {@link Row} will not contain field and
+   *     value for the entity
+   * @return list of {@link Row} containing features
+   */
   public List<Row> getOnlineFeatures(
       List<String> featureIds, List<Row> rows, boolean omitEntitiesInResponse) {
-    // featureSetMap is a map of pair of feature set name and version -> a list of feature names
-    Map<Pair<String, Integer>, List<String>> featureSetMap = new HashMap<>();
-    for (String featureId : featureIds) {
-      String[] parts = featureId.split(":");
-      if (parts.length < 3) {
-        throw new IllegalArgumentException(
-            String.format(
-                "Feature id '%s' has invalid format. Expected format: <feature_set_name>:<version>:<feature_name>.",
-                featureId));
-      }
-      String featureSetName = parts[0];
-      int featureSetVersion = -1;
-      try {
-        featureSetVersion = Integer.parseInt(parts[1]);
-      } catch (NumberFormatException e) {
-        throw new IllegalArgumentException(
-            String.format("Feature id '%s' contains invalid version", parts[1]));
-      }
-
-      Pair<String, Integer> key = new Pair<>(featureSetName, featureSetVersion);
-      if (!featureSetMap.containsKey(key)) {
-        featureSetMap.put(key, new ArrayList<>());
-      }
-      String featureName = parts[2];
-      featureSetMap.get(key).add(featureName);
-    }
-    List<FeatureSet> featureSets =
-        featureSetMap.entrySet().stream()
-            .map(
-                entry ->
-                    FeatureSet.newBuilder()
-                        .setName(entry.getKey().getKey())
-                        .setVersion(entry.getKey().getValue())
-                        .addAllFeatureNames(entry.getValue())
-                        .build())
-            .collect(Collectors.toList());
-
+    List<FeatureSet> featureSets = RequestUtil.createFeatureSets(featureIds);
     List<EntityRow> entityRows =
         rows.stream()
             .map(

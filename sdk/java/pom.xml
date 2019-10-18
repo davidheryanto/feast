@@ -11,6 +11,7 @@
   <properties>
     <grpc.version>1.24.0</grpc.version>
     <protobuf.version>3.10.0</protobuf.version>
+    <junit.version>5.5.2</junit.version>
   </properties>
 
   <dependencies>
@@ -46,6 +47,20 @@
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
       <version>1.8.0-beta4</version>
+    </dependency>
+
+    <!-- JUnit 5 -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-engine</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-params</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
     </dependency>
 
   </dependencies>
@@ -87,6 +102,12 @@
           <source>8</source>
           <target>8</target>
         </configuration>
+      </plugin>
+      <!-- For Junit 5 support -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.22.0</version>
       </plugin>
     </plugins>
   </build>
