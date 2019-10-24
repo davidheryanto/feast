@@ -46,8 +46,8 @@ if [[ ${COMPONENT} == "core-ingestion" ]]; then
   # Core depends on Ingestion so they are tested together
   mvn --define skipTests=true --projects core,ingestion clean install
   mvn --projects core,ingestion test
-
   TEST_EXIT_CODE=$?
+
   mkdir -p ${LOGS_ARTIFACT_PATH}/surefire-reports
   cp -r core/target/surefire-reports/* ${LOGS_ARTIFACT_PATH}/surefire-reports/*
   cp -r ingestion/target/surefire-reports/* ${LOGS_ARTIFACT_PATH}/surefire-reports/*
@@ -59,8 +59,8 @@ elif [[ ${COMPONENT} == "serving" ]]; then
 
   mvn --define skipTests=true --projects serving clean install
   mvn --projects serving test
-
   TEST_EXIT_CODE=$?
+
   cp -r serving/target/surefire-reports ${LOGS_ARTIFACT_PATH}/surefire-reports
 
 elif [[ ${COMPONENT} == "java-sdk" ]]; then
@@ -71,23 +71,25 @@ elif [[ ${COMPONENT} == "java-sdk" ]]; then
   # Core depends on Ingestion so they are tested together
   mvn --define skipTests=true --projects sdk/java clean install
   mvn --projects sdk/java test
-
   TEST_EXIT_CODE=$?
+
   cp -r sdk/java/target/surefire-reports ${LOGS_ARTIFACT_PATH}/surefire-reports
 
 elif [[ ${COMPONENT} == "python-sdk" ]]; then
 
   cd sdk/python
   pip install -r requirements-test.txt
-  python -m pytest --junitxml=${LOGS_ARTIFACT_PATH}/unittest-pythonsdk-report.xml
+  python -m pytest --junitxml=${LOGS_ARTIFACT_PATH}/python-sdk-test-report.xml
   TEST_EXIT_CODE=$?
 
 elif [[ ${COMPONENT} == "golang-sdk" ]]; then
 
-  cd sdk/python
-  pip install -r requirements-test.txt
-  python -m pytest --junitxml=${LOGS_ARTIFACT_PATH}/unittest-pythonsdk-report.xml
+  go test -v 2>&1 | tee /tmp/test_output
   TEST_EXIT_CODE=$?
+
+  go get -u github.com/jstemmer/go-junit-report
+  cat /tmp/test_output | go-junit-report > ${LOGS_ARTIFACT_PATH}/golang-sdk-test-report.xml
+
 
 else
   usage; exit 1
