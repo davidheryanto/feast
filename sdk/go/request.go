@@ -43,6 +43,30 @@ func (r OnlineFeaturesRequest) buildRequest() (*serving.GetOnlineFeaturesRequest
 }
 
 func buildFeatureSets(features []string) ([]*serving.FeatureSetRequest, error) {
+	featureSets := make([]serving.FeatureSetRequest, 4)
+	// Map of "feature_name:version" to the the "index" value in featureSets
+	featureNameVersionToIndex := make(map[string]int)
+
+	for _, feature := range features {
+		split := strings.Split(feature, ":")
+		if len(split) != 3 {
+			return nil, fmt.Errorf(ErrInvalidFeatureName, feature)
+		}
+
+		featureSetName, featureSetVersionString, featureName := split[0], split[1], split[2]
+		featureSetVersion, err := strconv.Atoi(featureSetVersionString)
+		if err != nil {
+			return nil, fmt.Errorf(ErrInvalidFeatureName, feature)
+		}
+
+		featureNameVersion := featureSetName + ":" + featureSetVersionString
+		if _,ok := featureNameVersionToIndex[featureNameVersion]; !ok {
+			featureNameVersionToIndex[featureNameVersion] = len(featureNameVersionToIndex)
+
+		}
+
+	}
+
 	featureSetMap := map[string]*serving.FeatureSetRequest{}
 	for _, feature := range features {
 		split := strings.Split(feature, ":")
