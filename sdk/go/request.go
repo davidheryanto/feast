@@ -46,7 +46,7 @@ func (r OnlineFeaturesRequest) buildRequest() (*serving.GetOnlineFeaturesRequest
 // a slice of "feature_set:version:feature_name" string.
 // It returns an error when "feature_set:version:feature_name" string has an invalid format.
 func buildFeatureSets(features []string) ([]*serving.FeatureSetRequest, error) {
-	var featureSets []*serving.FeatureSetRequest
+	var requests []*serving.FeatureSetRequest
 
 	// Map of "feature_name:version" to "FeatureSetRequest" pointer
 	// to reference existing FeatureSetRequest, if any.
@@ -65,18 +65,20 @@ func buildFeatureSets(features []string) ([]*serving.FeatureSetRequest, error) {
 		}
 
 		featureNameVersion := featureSetName + ":" + featureSetVersionString
-		if featureSet, ok := featureNameVersionToRequest[featureNameVersion]; !ok {
-			featureSet = &serving.FeatureSetRequest{
+		if request, ok := featureNameVersionToRequest[featureNameVersion]; !ok {
+			request = &serving.FeatureSetRequest{
 				Name:         featureSetName,
 				Version:      int32(featureSetVersion),
 				FeatureNames: []string{featureName},
 			}
-			featureNameVersionToRequest[featureNameVersion] = featureSet
-			featureSets = append(featureSets, featureSet)
+			featureNameVersionToRequest[featureNameVersion] = request
+			// Adding FeatureSetRequest in this step ensures the order of FeatureSetRequest in the slice
+			// follows the order from "features" argument in this method.
+			requests = append(requests, request)
 		} else {
-			featureSet.FeatureNames = append(featureSet.FeatureNames, featureName)
+			request.FeatureNames = append(request.FeatureNames, featureName)
 		}
 	}
 
-	return featureSets, nil
+	return requests, nil
 }
