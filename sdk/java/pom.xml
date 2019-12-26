@@ -16,7 +16,7 @@
 
   <groupId>dev.feast</groupId>
   <artifactId>feast-sdk</artifactId>
-  <version>0.3.4-SNAPSHOT</version>
+  <version>0.3.5</version>
 
   <distributionManagement>
     <snapshotRepository>
@@ -93,6 +93,7 @@
 
   <build>
     <plugins>
+      <!-- Javadoc and source attachments -->
       <plugin>
         <groupId>org.xolstice.maven.plugins</groupId>
         <artifactId>protobuf-maven-plugin</artifactId>
@@ -100,7 +101,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-source-plugin</artifactId>
-        <version>3.2.0</version>
+        <version>3.2.1</version>
         <executions>
           <execution>
             <id>attach-sources</id>
@@ -110,7 +111,6 @@
           </execution>
         </executions>
       </plugin>
-      <!-- Javadoc -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
@@ -125,6 +125,33 @@
         </executions>
         <configuration>
           <nohelp>true</nohelp>
+        </configuration>
+      </plugin>
+      <!-- GPG signed components -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-gpg-plugin</artifactId>
+        <version>1.6</version>
+        <executions>
+          <execution>
+            <id>sign-artifacts</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>sign</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- Nexus staging maven plugin for deployment and release -->
+      <plugin>
+        <groupId>org.sonatype.plugins</groupId>
+        <artifactId>nexus-staging-maven-plugin</artifactId>
+        <version>1.6.8</version>
+        <extensions>true</extensions>
+        <configuration>
+          <serverId>ossrh</serverId>
+          <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+          <autoReleaseAfterClose>true</autoReleaseAfterClose>
         </configuration>
       </plugin>
       <plugin>
