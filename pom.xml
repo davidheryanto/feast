@@ -18,24 +18,8 @@
 <project>
     <modelVersion>4.0.0</modelVersion>
 
-    <name>Feast</name>
-    <description>Feature Store for Machine Learning</description>
-    <url>${github.url}</url>
-
-    <groupId>feast</groupId>
-    <artifactId>feast-parent</artifactId>
-    <version>${revision}</version>
-    <packaging>pom</packaging>
-
-    <modules>
-        <module>ingestion</module>
-        <module>core</module>
-        <module>serving</module>
-        <module>sdk/java</module>
-    </modules>
-
     <properties>
-        <revision>0.3.5</revision>
+        <revision>0.3.3</revision>
         <github.url>https://github.com/gojek/feast</github.url>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -57,10 +41,35 @@
         <opencensus.version>0.21.0</opencensus.version>
     </properties>
 
+    <name>Feast</name>
+    <description>Feature Store for Machine Learning</description>
+    <url>${github.url}</url>
+
+    <groupId>dev.feast</groupId>
+    <artifactId>feast-parent</artifactId>
+    <version>${revision}</version>
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>ingestion</module>
+        <module>core</module>
+        <module>serving</module>
+        <module>sdk/java</module>
+    </modules>
+
     <organization>
         <name>Gojek</name>
-        <url>https://www.gojek.io/</url>
+        <url>https://www.gojek.io</url>
     </organization>
+
+    <developers>
+        <developer>
+            <name>Feast Authors</name>
+            <url>${github.url}</url>
+            <organization>Gojek</organization>
+            <organizationUrl>https://www.gojek.io</organizationUrl>
+        </developer>
+    </developers>
 
     <licenses>
         <license>
@@ -83,14 +92,13 @@
     </issueManagement>
 
     <distributionManagement>
-        <!-- TODO: use a profile like local -->
         <snapshotRepository>
-            <id>feast-snapshot</id>
-            <url>file:///tmp/snapshot</url>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
         </snapshotRepository>
         <repository>
-            <id>feast</id>
-            <url>file:///tmp/snapshot</url>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
         </repository>
     </distributionManagement>
 
@@ -396,6 +404,40 @@
                 <configuration>
                     <!-- Parent POM isn't a Spring Boot app, don't try to discover main classes. -->
                     <skip>true</skip>
+                </configuration>
+            </plugin>
+            <!-- GPG signed components -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>1.6</version>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                        <configuration>
+                            <gpgArguments>
+                                <arg>--pinentry-mode</arg>
+                                <arg>loopback</arg>
+                            </gpgArguments>
+                            <passphrase>${gpg.passphrase}</passphrase>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Nexus staging maven plugin for deployment and release -->
+            <plugin>
+                <groupId>org.sonatype.plugins</groupId>
+                <artifactId>nexus-staging-maven-plugin</artifactId>
+                <version>1.6.8</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <serverId>ossrh</serverId>
+                    <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
                 </configuration>
             </plugin>
         </plugins>

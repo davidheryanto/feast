@@ -6,28 +6,14 @@
 
   <name>Feast SDK for Java</name>
   <description>SDK for registering, storing, and retrieving features</description>
+  <artifactId>feast-sdk</artifactId>
 
   <parent>
-    <groupId>feast</groupId>
+    <groupId>dev.feast</groupId>
     <artifactId>feast-parent</artifactId>
-    <version>${revision}</version>
-    <relativePath>../..</relativePath>
+    <version>0.3.3</version>
+    <relativePath>../../pom.xml</relativePath>
   </parent>
-
-  <groupId>dev.feast</groupId>
-  <artifactId>feast-sdk</artifactId>
-  <version>0.3.5</version>
-
-  <distributionManagement>
-    <snapshotRepository>
-      <id>ossrh</id>
-      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-    </snapshotRepository>
-    <repository>
-      <id>ossrh</id>
-      <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-    </repository>
-  </distributionManagement>
 
   <properties>
     <!-- TODO: Standardize other modules on JUnit 5 and move this to parent -->
@@ -125,40 +111,6 @@
         </executions>
         <configuration>
           <nohelp>true</nohelp>
-        </configuration>
-      </plugin>
-      <!-- GPG signed components -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-gpg-plugin</artifactId>
-        <version>1.6</version>
-        <executions>
-          <execution>
-            <id>sign-artifacts</id>
-            <phase>verify</phase>
-            <goals>
-              <goal>sign</goal>
-            </goals>
-            <configuration>
-              <gpgArguments>
-                <arg>--pinentry-mode</arg>
-                <arg>loopback</arg>
-              </gpgArguments>
-              <passphrase>${gpg.passphrase}</passphrase>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <!-- Nexus staging maven plugin for deployment and release -->
-      <plugin>
-        <groupId>org.sonatype.plugins</groupId>
-        <artifactId>nexus-staging-maven-plugin</artifactId>
-        <version>1.6.8</version>
-        <extensions>true</extensions>
-        <configuration>
-          <serverId>ossrh</serverId>
-          <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-          <autoReleaseAfterClose>true</autoReleaseAfterClose>
         </configuration>
       </plugin>
       <plugin>
