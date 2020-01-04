@@ -18,6 +18,7 @@
 package feast.serving.util;
 
 import com.google.common.base.Strings;
+import com.google.protobuf.TextFormat;
 import feast.serving.ServingAPIProto.QueryFeaturesRequest;
 
 public class RequestHelper {
@@ -43,8 +44,11 @@ public class RequestHelper {
     String entityName = request.getEntityName();
     for (String featureId : request.getFeatureIdList()) {
       if (!featureId.substring(0, featureId.indexOf(".")).equals(entityName)) {
-        throw new IllegalArgumentException(
-            "entity name of all feature ID in request details must be: " + entityName);
+        String error = String.format("Invalid request because featureIds in the request have "
+            + "different entity names. All featureIds are expected to have the same entity name."
+            + "Expected entityName: '%s'. FeatureId that causes error: '%s'",
+            entityName, featureId);
+        throw new IllegalArgumentException(error);
       }
     }
   }

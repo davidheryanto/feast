@@ -18,15 +18,18 @@
 package feast.serving.grpc;
 
 import static feast.serving.util.RequestHelper.validateRequest;
+import static feast.serving.util.StatsUtil.REMOTE_ADDRESS;
 import static feast.serving.util.StatsUtil.makeStatsdTags;
 import static io.grpc.Status.Code.INTERNAL;
 
+import com.google.protobuf.TextFormat;
 import com.timgroup.statsd.StatsDClient;
 import feast.serving.ServingAPIGrpc.ServingAPIImplBase;
 import feast.serving.ServingAPIProto.QueryFeaturesRequest;
 import feast.serving.ServingAPIProto.QueryFeaturesResponse;
 import feast.serving.service.FeastServing;
 import feast.serving.util.TimeUtil;
+import io.grpc.Context;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
@@ -39,7 +42,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.lognet.springboot.grpc.GRpcService;
 import org.springframework.beans.factory.annotation.Autowired;
 
-/** Grpc service implementation for Serving API. */
+/**
+ * Grpc service implementation for Serving API.
+ */
 @Slf4j
 @GRpcService(interceptors = {ServerTracingInterceptor.class})
 public class ServingGrpcService extends ServingAPIImplBase {
@@ -55,11 +60,14 @@ public class ServingGrpcService extends ServingAPIImplBase {
     this.statsDClient = statsDClient;
   }
 
-  /** Query feature values from Feast storage. */
+  /**
+   * Query feature values from Feast storage.
+   */
   @Override
-  public void queryFeatures(QueryFeaturesRequest request, StreamObserver<QueryFeaturesResponse> responseObserver) {
+  public void queryFeatures(QueryFeaturesRequest request,
+      StreamObserver<QueryFeaturesResponse> responseObserver) {
     long currentMicro = TimeUtil.microTime();
-    Span span =tracer
+    Span span = tracer
         .buildSpan("ServingGrpcService.queryFeatures")
         .asChildOf(OpenTracingContextKey.activeSpan())
         .start();
@@ -76,7 +84,10 @@ public class ServingGrpcService extends ServingAPIImplBase {
       statsDClient.increment("query_feature_success", tags);
     } catch (Exception e) {
       statsDClient.increment("query_feature_failed", tags);
-      log.error("Error: {}", e.getMessage());
+      String error = String.format(
+          "GRPC call 'queryFeatures' failed with error: %s. Client IP: %s. Request data: %s",
+          e.getMessage(), REMOTE_ADDRESS.get(), TextFormat.printToString(request));
+      log.error("Error: {}", error);
       responseObserver.onError(
           new StatusRuntimeException(
               Status.fromCode(INTERNAL).withDescription(e.getMessage()).withCause(e)));
