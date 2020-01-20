@@ -40,6 +40,8 @@ import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.options.PipelineOptionsValidator;
+import org.apache.beam.sdk.transforms.DoFn;
+import org.apache.beam.sdk.transforms.ParDo;
 import org.apache.beam.sdk.values.PCollectionTuple;
 import org.apache.beam.sdk.values.TupleTag;
 import org.slf4j.Logger;
@@ -47,10 +49,12 @@ import org.slf4j.Logger;
 public class ImportJob {
 
   // Tag for main output containing Feature Row that has been successfully processed.
-  private static final TupleTag<FeatureRow> FEATURE_ROW_OUT = new TupleTag<FeatureRow>() {};
+  private static final TupleTag<FeatureRow> FEATURE_ROW_OUT = new TupleTag<FeatureRow>() {
+  };
 
   // Tag for deadletter output containing elements and error messages from invalid input/transform.
-  private static final TupleTag<FailedElement> DEADLETTER_OUT = new TupleTag<FailedElement>() {};
+  private static final TupleTag<FailedElement> DEADLETTER_OUT = new TupleTag<FailedElement>() {
+  };
   private static final Logger log = org.slf4j.LoggerFactory.getLogger(ImportJob.class);
 
   /**
@@ -58,6 +62,7 @@ public class ImportJob {
    * @throws InvalidProtocolBufferException if options passed to the pipeline are invalid
    */
   public static void main(String[] args) throws InvalidProtocolBufferException {
+    PipelineOptionsFactory.register(ImportOptions.class);
     ImportOptions options =
         PipelineOptionsFactory.fromArgs(args).withValidation().create().as(ImportOptions.class);
     runPipeline(options);
@@ -152,6 +157,21 @@ public class ImportJob {
                     .setJsonSchema(ResourceUtil.getDeadletterTableSchemaJson())
                     .setTableSpec(options.getDeadLetterTableSpec())
                     .build());
+      } else {
+        convertedFeatureRows
+            .get(DEADLETTER_OUT).apply(ParDo.of(new DoFn<FailedElement, Void>() {
+          @ProcessElement
+          public void processElement(@Element FailedElement elem) {
+              log.error(elem.getErrorMessage());
+          }
+        }));
+        validatedRows
+            .get(DEADLETTER_OUT).apply(ParDo.of(new DoFn<FailedElement, Void>() {
+          @ProcessElement
+          public void processElement(@Element FailedElement elem) {
+            log.error(elem.getErrorMessage());
+          }
+        }));
       }
 
       // Step 5. Write metrics to a metrics sink.

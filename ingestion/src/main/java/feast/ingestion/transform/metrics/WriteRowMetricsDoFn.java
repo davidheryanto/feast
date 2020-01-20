@@ -118,6 +118,19 @@ public abstract class WriteRowMetricsDoFn extends DoFn<FeatureRow, Void> {
               FEATURE_SET_VERSION_TAG_KEY + ":" + featureSetVersion,
               FEATURE_TAG_KEY + ":" + field.getName(),
               INGESTION_JOB_NAME_KEY + ":" + c.getPipelineOptions().getJobName());
+
+          
+
+          statsd.histogram(
+              "feature_value",
+              field.getValue().getInt64Val(),
+              STORE_TAG_KEY + ":" + getStoreName(),
+              FEATURE_SET_PROJECT_TAG_KEY + ":" + featureSetProject,
+              FEATURE_SET_NAME_TAG_KEY + ":" + featureSetName,
+              FEATURE_SET_VERSION_TAG_KEY + ":" + featureSetVersion,
+              FEATURE_TAG_KEY + ":" + field.getName(),
+              INGESTION_JOB_NAME_KEY + ":" + c.getPipelineOptions().getJobName());
+
         } else {
           statsd.count(
               "feature_value_missing_count",
