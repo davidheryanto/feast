@@ -26,6 +26,7 @@ import grpc
 from feast_core_server import CoreServicer
 import feast.core.CoreService_pb2_grpc as Core
 import dataframes
+from tensorflow_metadata.proto.v0 import schema_pb2
 
 CORE_URL = "core.feast.local"
 SERVING_URL = "serving.feast.local"
@@ -173,3 +174,20 @@ class TestFeatureSet:
 
     def test_get_schema(self):
         pass
+
+def create_test_data_for_test_update_schema():
+    test_input_feature_set, test_input_provided_schema, expected = [] * 3
+
+    # Empty feature set
+    test_input_feature_set.append(FeatureSet(name="empty_feature_set"))
+    test_input_provided_schema.append(schema_pb2.Schema())
+    expected.append(FeatureSet(name="empty_feature_set"))
+
+    presence_constraints = [
+        schema_pb2.FeaturePresence(min_fraction=0.6, min_count=10),
+        schema_pb2.FeaturePresenceWithinGroup(required=True),
+    ]
+
+    shape_type = [
+        schema_pb2.FixedShape()
+    ]
