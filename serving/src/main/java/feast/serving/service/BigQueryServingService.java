@@ -18,7 +18,6 @@ package feast.serving.service;
 
 import static feast.serving.store.bigquery.QueryTemplater.createEntityTableUUIDQuery;
 import static feast.serving.store.bigquery.QueryTemplater.generateFullTableName;
-import static feast.serving.util.Metrics.requestLatency;
 
 import com.google.cloud.RetryOption;
 import com.google.cloud.bigquery.BigQuery;
@@ -116,7 +115,6 @@ public class BigQueryServingService implements ServingService {
   /** {@inheritDoc} */
   @Override
   public GetBatchFeaturesResponse getBatchFeatures(GetBatchFeaturesRequest getFeaturesRequest) {
-    long startTime = System.currentTimeMillis();
     List<FeatureSetRequest> featureSetRequests =
         specService.getFeatureSets(getFeaturesRequest.getFeaturesList());
 
@@ -167,10 +165,6 @@ public class BigQueryServingService implements ServingService {
                 .setTotalTimeoutSecs(totalTimeoutSecs)
                 .build())
         .start();
-
-    requestLatency
-        .labels("getBatchFeatures")
-        .observe((System.currentTimeMillis() - startTime) / 1000);
     return GetBatchFeaturesResponse.newBuilder().setJob(feastJob).build();
   }
 

@@ -18,7 +18,6 @@ package feast.serving.service;
 
 import static feast.serving.util.Metrics.missingKeyCount;
 import static feast.serving.util.Metrics.requestCount;
-import static feast.serving.util.Metrics.requestLatency;
 import static feast.serving.util.Metrics.staleKeyCount;
 import static feast.serving.util.RefUtil.generateFeatureSetStringRef;
 import static feast.serving.util.RefUtil.generateFeatureStringRef;
@@ -84,7 +83,6 @@ public class RedisServingService implements ServingService {
   @Override
   public GetOnlineFeaturesResponse getOnlineFeatures(GetOnlineFeaturesRequest request) {
     try (Scope scope = tracer.buildSpan("Redis-getOnlineFeatures").startActive(true)) {
-      long startTime = System.currentTimeMillis();
       GetOnlineFeaturesResponse.Builder getOnlineFeaturesResponseBuilder =
           GetOnlineFeaturesResponse.newBuilder();
 
@@ -117,9 +115,6 @@ public class RedisServingService implements ServingService {
           featureValuesMap.values().stream()
               .map(valueMap -> FieldValues.newBuilder().putAllFields(valueMap).build())
               .collect(Collectors.toList());
-      requestLatency
-          .labels("getOnlineFeatures")
-          .observe((System.currentTimeMillis() - startTime) / 1000);
       return getOnlineFeaturesResponseBuilder.addAllFieldValues(fieldValues).build();
     }
   }
@@ -195,7 +190,6 @@ public class RedisServingService implements ServingService {
       throws InvalidProtocolBufferException {
 
     List<byte[]> jedisResps = sendMultiGet(redisKeys);
-    long startTime = System.currentTimeMillis();
     try (Scope scope = tracer.buildSpan("Redis-processResponse").startActive(true)) {
       FeatureSetSpec spec = featureSetRequest.getSpec();
 
@@ -269,10 +263,6 @@ public class RedisServingService implements ServingService {
                   featureValues.put(id, field.getValue());
                 });
       }
-    } finally {
-      requestLatency
-          .labels("processResponse")
-          .observe((System.currentTimeMillis() - startTime) / 1000);
     }
   }
 
@@ -297,7 +287,6 @@ public class RedisServingService implements ServingService {
    */
   private List<byte[]> sendMultiGet(List<RedisKey> keys) {
     try (Scope scope = tracer.buildSpan("Redis-sendMultiGet").startActive(true)) {
-      long startTime = System.currentTimeMillis();
       try (Jedis jedis = jedisPool.getResource()) {
         byte[][] binaryKeys =
             keys.stream()
@@ -310,10 +299,6 @@ public class RedisServingService implements ServingService {
             .withDescription("Unable to retrieve feature from Redis")
             .withCause(e)
             .asRuntimeException();
-      } finally {
-        requestLatency
-            .labels("sendMultiGet")
-            .observe((System.currentTimeMillis() - startTime) / 1000);
       }
     }
   }
